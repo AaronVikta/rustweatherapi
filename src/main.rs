@@ -1,10 +1,10 @@
-use axum::{routing::get, Router};
-
+use axum::{http::StatusCode, routing::get, Router};
+use axum::extract::Query;
 
 
 
 // Struct that holds the latitude and longitude
-use serde::{Deserialize};
+use serde::Deserialize;
 #[derive(Deserialize)]
 pub struct GeoResponse{
     pub results: Vec<LatLong>,
@@ -20,10 +20,19 @@ async fn index()-> &'static str{
     "Index"
 }
 
-async fn weather(city:String)-> String{
-    println!("city: {}", city);
-    let lat_long = fetch_lat_long(&city).await.unwrap();
-    format!("{}: {}, {}", city,lat_long.latitude, lat_long.longitude)
+#[derive(Deserialize)]
+pub struct WeatherQuery{
+    pub city:String,
+}
+
+async fn weather(Query(params): Query<WeatherQuery>) -> Result<String, StatusCode> {
+	let lat_long = fetch_lat_long(&params.city)
+    	.await
+    	.map_err(|_| StatusCode::NOT_FOUND)?;
+	Ok(format!(
+    	"{}: {}, {}",
+    	params.city, lat_long.latitude, lat_long.longitude
+	))
 }
 
 async fn stats()-> &'static str{
